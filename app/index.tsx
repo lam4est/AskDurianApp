@@ -34,14 +34,10 @@ export default function HomeScreen() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-
   const background = useThemeColor({}, 'background');
   const iconColor = useThemeColor({}, 'text');
-
-  // Sidebar animation offset
   const sidebarOffset = useSharedValue(0);
 
-  // Toggle sidebar
   const toggleSidebar = (open: boolean) => {
     setIsSidebarOpen(open);
     sidebarOffset.value = withTiming(open ? SIDEBAR_WIDTH : 0, {
@@ -49,7 +45,7 @@ export default function HomeScreen() {
     });
   };
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (!inputMessage.trim()) return;
 
     const userMessage: Message = {
@@ -61,22 +57,40 @@ export default function HomeScreen() {
     setMessages(prev => [...prev, userMessage]);
     setInputMessage('');
 
-    setTimeout(() => {
+    try {
+      const response = await fetch('http://192.168.110.146:8000/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          user_id: 'string', 
+          message: inputMessage,
+        }),
+      });
+      const data = await response.json();
+      console.log('API response:', data);
+
       const botMessage: Message = {
         id: (Date.now() + 1).toString(),
-        text: 'Xin chào! Tôi là Sầu Riêng AI 🍈',
+        text: data.answer || 'Xin lỗi, tôi không hiểu.',
         isUser: false,
       };
       setMessages(prev => [...prev, botMessage]);
-    }, 800);
+    } catch (error) {
+      const botMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        text: 'Có lỗi xảy ra khi kết nối tới máy chủ.',
+        isUser: false,
+      };
+      setMessages(prev => [...prev, botMessage]);
+    }
   };
 
-  // Main content animation
   const mainAnimatedStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: sidebarOffset.value }],
   }));
 
-  // Overlay mờ animation
   const overlayAnimatedStyle = useAnimatedStyle(() => ({
     opacity: (sidebarOffset.value / SIDEBAR_WIDTH) * 0.3,
     display: sidebarOffset.value > 0 ? 'flex' : 'none',
