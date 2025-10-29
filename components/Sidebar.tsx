@@ -1,9 +1,11 @@
 import React, { useEffect } from 'react';
-import { StyleSheet, Dimensions, TouchableOpacity, ScrollView } from 'react-native';
+import { StyleSheet, Dimensions, TouchableOpacity, ScrollView, ImageBackground } from 'react-native';
 import Animated, { 
   useAnimatedStyle, 
   withTiming,
+  withDelay,
   runOnJS,
+  useSharedValue,
 } from 'react-native-reanimated';
 import type { SharedValue } from 'react-native-reanimated';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
@@ -31,10 +33,9 @@ export default function Sidebar({ isOpen, onClose, offset }: SidebarProps) {
     offset.value = withTiming(isOpen ? SIDEBAR_WIDTH : 0, { duration: 300 });
   }, [isOpen]);
 
-  const panGesture = Gesture.Pan()
-    .onUpdate((event) => {
-      if (event.translationX < -50) runOnJS(onClose)();
-    });
+  const panGesture = Gesture.Pan().onUpdate((event) => {
+    if (event.translationX < -50) runOnJS(onClose)();
+  });
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: offset.value - SIDEBAR_WIDTH }],
@@ -50,22 +51,28 @@ export default function Sidebar({ isOpen, onClose, offset }: SidebarProps) {
         ]}
       >
         <SafeAreaView style={{ flex: 1 }}>
-          {/* Header ngắn gọn */}
+          {/* Header */}
           <ThemedView style={styles.header}>
             <Ionicons name="person-circle-outline" size={36} color={textColor} />
             <ThemedText style={styles.userName}>Sầu Riêng AI</ThemedText>
           </ThemedView>
 
-          {/* Cuộc trò chuyện mẫu */}
-          <ScrollView style={styles.chatSamples}>
-            <SectionTitle title="Cuộc trò chuyện mẫu" />
-            <ChatSample text="Tác dụng của sầu riêng với sức khỏe 🍈" />
-            <ChatSample text="Sầu riêng nên bảo quản như thế nào?" />
-            <ChatSample text="Mẹo chọn sầu riêng ngon?" />
-            <ChatSample text="Phân biệt sầu riêng Ri6 và Monthong" />
-          </ScrollView>
+          <ImageBackground
+            source={require('@/assets/images/durian.png')} 
+            resizeMode="contain"
+            style={styles.imageBackground}
+            imageStyle={{ opacity: 0.15, position: 'absolute', right: -50, top: 100, width: 300, height: 300 }}
+          >
+            <ScrollView style={styles.chatSamples}>
+              <SectionTitle title="Cuộc trò chuyện mẫu" />
+              <ChatSample text="Tác dụng của sầu riêng với sức khỏe 🍈" index={0} isOpen={isOpen} />
+              <ChatSample text="Sầu riêng nên bảo quản như thế nào?" index={1} isOpen={isOpen} />
+              <ChatSample text="Mẹo chọn sầu riêng ngon?" index={2} isOpen={isOpen} />
+              <ChatSample text="Phân biệt sầu riêng Ri6 và Monthong" index={3} isOpen={isOpen} />
+            </ScrollView>
+          </ImageBackground>
 
-          {/* Menu phía dưới */}
+          {/* Menu dưới */}
           <ThemedView style={styles.footer}>
             <MenuItem icon="book-outline" label="Hướng dẫn" />
             <MenuItem icon="settings-outline" label="Cài đặt" />
@@ -78,19 +85,38 @@ export default function Sidebar({ isOpen, onClose, offset }: SidebarProps) {
   );
 }
 
-// --- Các component nhỏ gọn gàng ---
 function SectionTitle({ title }: { title: string }) {
   const color = useThemeColor({}, 'text');
   return <ThemedText style={[styles.sectionTitle, { color }]}>{title}</ThemedText>;
 }
 
-function ChatSample({ text }: { text: string }) {
+function ChatSample({ text, index, isOpen }: { text: string; index: number; isOpen: boolean }) {
   const color = useThemeColor({}, 'text');
+  const opacity = useSharedValue(0);
+  const translateX = useSharedValue(-20);
+
+  useEffect(() => {
+    if (isOpen) {
+      opacity.value = withDelay(index * 120, withTiming(1, { duration: 400 }));
+      translateX.value = withDelay(index * 120, withTiming(0, { duration: 400 }));
+    } else {
+      opacity.value = withTiming(0, { duration: 200 });
+      translateX.value = withTiming(-20, { duration: 200 });
+    }
+  }, [isOpen]);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    opacity: opacity.value,
+    transform: [{ translateX: translateX.value }],
+  }));
+
   return (
-    <TouchableOpacity style={styles.chatSampleButton}>
-      <Ionicons name="chatbubble-ellipses-outline" size={20} color={color} />
-      <ThemedText style={styles.chatSampleText}>{text}</ThemedText>
-    </TouchableOpacity>
+    <Animated.View style={[{ opacity: 0, transform: [{ translateX: -20 }] }, animatedStyle]}>
+      <TouchableOpacity style={styles.chatSampleButton}>
+        <Ionicons name="chatbubble-ellipses-outline" size={20} color={color} />
+        <ThemedText style={styles.chatSampleText}>{text}</ThemedText>
+      </TouchableOpacity>
+    </Animated.View>
   );
 }
 
@@ -144,6 +170,9 @@ const styles = StyleSheet.create({
   chatSamples: {
     flex: 1,
     marginTop: 8,
+  },
+  imageBackground: {
+    flex: 1,
   },
   chatSampleButton: {
     flexDirection: 'row',

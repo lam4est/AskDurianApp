@@ -1,5 +1,7 @@
-import { View, Text, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { useThemeColor } from '@/hooks/use-theme-color';
+import Animated, { FadeInUp } from 'react-native-reanimated';
+import { ThemedText } from '@/components/themed-text';
 
 interface MessageProps {
   text: string;
@@ -9,22 +11,27 @@ interface MessageProps {
 export default function MessageComponent({ text, isUser }: MessageProps) {
   const textColor = useThemeColor({}, 'text');
   const background = useThemeColor({}, 'background');
-  
+
   return (
-    <View style={[
-      styles.messageContainer,
-      {
-        backgroundColor: isUser ? '#E5E5E5' : background,
-        alignSelf: isUser ? 'flex-end' : 'flex-start',
-      }
-    ]}>
-      <Text style={[
-        styles.messageText,
-        { color: isUser ? '#000000' : textColor }
-      ]}>
+    <Animated.View
+      entering={FadeInUp.duration(250)}
+      style={[
+        styles.messageContainer,
+        {
+          backgroundColor: isUser ? '#E5E5E5' : background,
+          alignSelf: isUser ? 'flex-end' : 'flex-start',
+        },
+      ]}
+    >
+      <ThemedText
+        style={[
+          styles.messageText,
+          { color: isUser ? '#000000' : textColor },
+        ]}
+      >
         {text}
-      </Text>
-    </View>
+      </ThemedText>
+    </Animated.View>
   );
 }
 
@@ -38,5 +45,6 @@ const styles = StyleSheet.create({
   },
   messageText: {
     fontSize: 16,
+    lineHeight: 22,
   },
 });
